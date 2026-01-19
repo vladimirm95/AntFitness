@@ -1,6 +1,7 @@
 package com.antfitness.ant.services;
 
 import com.antfitness.ant.model.Exercise;
+import com.antfitness.ant.model.MuscleGroup;
 import com.antfitness.ant.repositories.ExerciseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,5 +16,9 @@ public class ExerciseService {
 
     public List<Exercise> findAll() {
         return exerciseRepository.findAll();
+    }
+
+    public List<Exercise> findByMuscleGroup(MuscleGroup muscleGroup) {
+        return exerciseRepository.findAllByMuscleGroup(muscleGroup);
     }
 }
