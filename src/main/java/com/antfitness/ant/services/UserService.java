@@ -1,6 +1,5 @@
 package com.antfitness.ant.services;
 
-
 import com.antfitness.ant.model.Role;
 import com.antfitness.ant.model.User;
 import com.antfitness.ant.repositories.UserRepository;
@@ -30,5 +29,10 @@ public class UserService {
                 .build();
 
         return userRepository.save(u);
+    }
+
+    public User getByUsernameOrThrow(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 }

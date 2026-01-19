@@ -41,9 +41,5 @@ public class AuthController {
         String token = jwtUtil.generateToken(username);
         return ResponseEntity.ok(new AuthResponse(token));
     }
-    @GetMapping("/me")
-    public MeResponse me(org.springframework.security.core.Authentication auth) {
-        return new MeResponse(auth.getName());
-    }
 
 }
