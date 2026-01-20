@@ -29,4 +29,10 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         return ResponseEntity.badRequest().body(new ErrorResponse(msg));
     }
+    @ExceptionHandler(com.antfitness.ant.exceptions.ForbiddenException.class)
+    public ResponseEntity<com.antfitness.ant.responses.ErrorResponse> handleForbidden(
+            com.antfitness.ant.exceptions.ForbiddenException ex) {
+        return ResponseEntity.status(403).body(new com.antfitness.ant.responses.ErrorResponse(ex.getMessage()));
+    }
+
 }
