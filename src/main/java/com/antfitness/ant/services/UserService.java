@@ -5,6 +5,7 @@ import com.antfitness.ant.model.User;
 import com.antfitness.ant.repositories.UserRepository;
 import com.antfitness.ant.requests.RegisterRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -54,23 +55,71 @@ public class UserService {
         return userRepository.save(u);
     }
 
-    public User updateUser(Long id, String username, String email, Role role) {
-        User u = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+    public User updateUser(Long id, String username, String email, Role newRole) {
 
-        if (!u.getUsername().equalsIgnoreCase(username) && userRepository.existsByUsername(username))
+        User userToUpdate = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        String currentUsername =
+                SecurityContextHolder.getContext().getAuthentication().getName();
+
+        //  Admin ne moze menjati samog sebe
+        if (userToUpdate.getUsername().equals(currentUsername)) {
+            throw new IllegalArgumentException("Admin cannot update his own role");
+        }
+
+        if (userToUpdate.getRole() == Role.ADMIN && newRole == Role.USER) {
+
+            long adminCount = userRepository.findAll().stream()
+                    .filter(u -> u.getRole() == Role.ADMIN)
+                    .count();
+
+            if (adminCount <= 1) {
+                throw new IllegalArgumentException("Cannot downgrade the last admin");
+            }
+        }
+
+        if (!userToUpdate.getUsername().equalsIgnoreCase(username)
+                && userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Username already exists");
+        }
 
-        if (!u.getEmail().equalsIgnoreCase(email) && userRepository.existsByEmail(email))
+        if (!userToUpdate.getEmail().equalsIgnoreCase(email)
+                && userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists");
+        }
 
-        u.setUsername(username);
-        u.setEmail(email);
-        u.setRole(role);
-        return userRepository.save(u);
+        userToUpdate.setUsername(username);
+        userToUpdate.setEmail(email);
+        userToUpdate.setRole(newRole);
+
+        return userRepository.save(userToUpdate);
     }
 
+
+
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) throw new IllegalArgumentException("User not found");
-        userRepository.deleteById(id);
+
+        User userToDelete = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // username trenutno ulogovanog korisnika
+        String currentUsername =
+                SecurityContextHolder.getContext().getAuthentication().getName();
+
+        if (userToDelete.getUsername().equals(currentUsername)) {
+            throw new IllegalArgumentException("Admin cannot delete himself");
+        }
+
+        // ne moze se obrisati poslednji admin
+        if (userToDelete.getRole() == Role.ADMIN) {
+            long adminCount = userRepository.findAll().stream()
+                    .filter(u -> u.getRole() == Role.ADMIN)
+                    .count();
+
+            if (adminCount <= 1) {
+                throw new IllegalArgumentException("Cannot delete the last admin");
+            }
+        }
     }
 }
