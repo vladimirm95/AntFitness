@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @RestController
 @RequestMapping("/workouts")
 @CrossOrigin
@@ -17,6 +20,11 @@ public class WorkoutController {
 
     private final WorkoutService workoutService;
     private final UserService userService;
+
+    @GetMapping("/{id}")
+    public WorkoutPlanResponse getById(@PathVariable Long id) {
+        return map(workoutService.getById(id));
+    }
 
     @PostMapping
     public WorkoutPlanResponse create(
@@ -58,4 +66,31 @@ public class WorkoutController {
                         .toList()
         );
     }
+    @GetMapping
+    public WorkoutPlanResponse getByDate(
+            @RequestParam String date,
+            Authentication auth
+    ) {
+        User user = userService.getByUsernameOrThrow(auth.getName());
+        var plan = workoutService.getByDate(user, LocalDate.parse(date));
+        return map(plan);
+    }
+
+    @GetMapping("/calendar")
+    public List<WorkoutCalendarDayResponse> calendar(
+            @RequestParam int year,
+            @RequestParam int month,
+            Authentication auth
+    ) {
+        User user = userService.getByUsernameOrThrow(auth.getName());
+
+        return workoutService.getForMonth(user, year, month).stream()
+                .map(p -> new WorkoutCalendarDayResponse(
+                        p.getDate(),
+                        p.isCompleted()
+                ))
+                .toList();
+    }
+
+
 }

@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -59,4 +61,23 @@ public class WorkoutService {
         plan.setCompleted(true);
         return planRepository.save(plan);
     }
+
+    public WorkoutDayPlan getByDate(User user, LocalDate date) {
+        return planRepository.findByUserAndDate(user, date)
+                .orElseThrow(() -> new IllegalArgumentException("Workout plan not found for this date"));
+    }
+    public List<WorkoutDayPlan> getForMonth(User user, int year, int month) {
+
+        YearMonth ym = YearMonth.of(year, month);
+        LocalDate start = ym.atDay(1);
+        LocalDate end = ym.atEndOfMonth();
+
+        return planRepository.findAllByUserAndDateBetween(user, start, end);
+    }
+    public WorkoutDayPlan getById(Long id) {
+        return planRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Workout plan not found"));
+    }
+
+
 }
