@@ -4,6 +4,7 @@ import com.antfitness.ant.model.*;
 import com.antfitness.ant.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -17,6 +18,7 @@ public class WorkoutService {
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final ExerciseRepository exerciseRepository;
 
+    @Transactional
     public WorkoutDayPlan createPlan(User user, LocalDate date) {
         planRepository.findByUserAndDate(user, date)
                 .ifPresent(p -> {
@@ -32,6 +34,7 @@ public class WorkoutService {
         return planRepository.save(plan);
     }
 
+    @Transactional
     public WorkoutDayPlan addExercise(Long planId, Long exerciseId, int sets, int reps) {
 
         WorkoutDayPlan plan = planRepository.findById(planId)
@@ -54,6 +57,7 @@ public class WorkoutService {
         return planRepository.save(plan);
     }
 
+    @Transactional
     public WorkoutDayPlan markCompleted(Long id) {
         WorkoutDayPlan plan = planRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Workout plan not found"));
