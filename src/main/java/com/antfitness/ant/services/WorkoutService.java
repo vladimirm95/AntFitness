@@ -3,6 +3,7 @@ package com.antfitness.ant.services;
 import com.antfitness.ant.model.*;
 import com.antfitness.ant.repositories.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +56,22 @@ public class WorkoutService {
 
         plan.getExercises().add(we);
         return planRepository.save(plan);
+    }
+    @Transactional
+    public void deleteWorkoutExercise(Long workoutExerciseId) {
+
+        WorkoutExercise we = workoutExerciseRepository.findById(workoutExerciseId)
+                .orElseThrow(() -> new IllegalArgumentException("Workout exercise not found"));
+
+        String currentUsername =
+                SecurityContextHolder.getContext().getAuthentication().getName();
+
+        //!
+        if (!we.getWorkoutDayPlan().getUser().getUsername().equals(currentUsername)) {
+            throw new IllegalArgumentException("You cannot delete exercises from another user's workout");
+        }
+
+        workoutExerciseRepository.delete(we);
     }
 
     @Transactional

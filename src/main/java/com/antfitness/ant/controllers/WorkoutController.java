@@ -36,6 +36,11 @@ public class WorkoutController {
         return map(plan);
     }
 
+    @DeleteMapping("/exercises/{id}")
+    public void deleteWorkoutExercise(@PathVariable Long id) {
+        workoutService.deleteWorkoutExercise(id);
+    }
+
     @PostMapping("/{id}/exercises")
     public WorkoutPlanResponse addExercise(
             @PathVariable Long id,
