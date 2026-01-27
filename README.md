@@ -51,10 +51,4 @@ The project is designed as a backend for Android/Web applications.
 
 ---
 
-##  Running the Project
-
-### Requirements
-- Java 17+
-- PostgreSQL
-
 
