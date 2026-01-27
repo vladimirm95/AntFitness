@@ -4,6 +4,8 @@ import com.antfitness.ant.model.Exercise;
 import com.antfitness.ant.model.MuscleGroup;
 import com.antfitness.ant.repositories.ExerciseRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,14 +16,17 @@ public class ExerciseService {
 
     private final ExerciseRepository exerciseRepository;
 
+    @Cacheable("exercises_all")
     public List<Exercise> findAll() {
         return exerciseRepository.findAll();
     }
 
+    @Cacheable(value = "exercises_by_group", key = "#muscleGroup")
     public List<Exercise> findByMuscleGroup(MuscleGroup muscleGroup) {
         return exerciseRepository.findAllByMuscleGroup(muscleGroup);
     }
 
+    @CacheEvict(value = {"exercises_all", "exercises_by_group"}, allEntries = true)
     public Exercise create(String name, String description, MuscleGroup mg) {
         if (exerciseRepository.existsByName(name)) {
             throw new IllegalArgumentException("Exercise with this name already exists");
@@ -33,7 +38,7 @@ public class ExerciseService {
                 .build();
         return exerciseRepository.save(e);
     }
-
+    @CacheEvict(value = {"exercises_all", "exercises_by_group"}, allEntries = true)
     public Exercise update(Long id, String name, String description, MuscleGroup mg) {
         Exercise e = exerciseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Exercise not found"));
@@ -47,7 +52,7 @@ public class ExerciseService {
         e.setMuscleGroup(mg);
         return exerciseRepository.save(e);
     }
-
+    @CacheEvict(value = {"exercises_all", "exercises_by_group"}, allEntries = true)
     public void delete(Long id) {
         if (!exerciseRepository.existsById(id)) {
             throw new IllegalArgumentException("Exercise not found");

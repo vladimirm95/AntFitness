@@ -3,6 +3,8 @@ package com.antfitness.ant.services;
 import com.antfitness.ant.model.*;
 import com.antfitness.ant.repositories.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ public class WorkoutService {
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final ExerciseRepository exerciseRepository;
 
+    @CacheEvict(value = "workout_calendar", allEntries = true)
     @Transactional
     public WorkoutDayPlan createPlan(User user, LocalDate date) {
         planRepository.findByUserAndDate(user, date)
@@ -87,6 +90,7 @@ public class WorkoutService {
         return planRepository.findByUserAndDate(user, date)
                 .orElseThrow(() -> new IllegalArgumentException("Workout plan not found for this date"));
     }
+    @Cacheable(value = "workout_calendar", key = "#user.id + ':' + #year + ':' + #month")
     public List<WorkoutDayPlan> getForMonth(User user, int year, int month) {
 
         YearMonth ym = YearMonth.of(year, month);
