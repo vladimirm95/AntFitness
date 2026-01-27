@@ -38,6 +38,7 @@ public class ExerciseService {
                 .build();
         return exerciseRepository.save(e);
     }
+
     @CacheEvict(value = {"exercises_all", "exercises_by_group"}, allEntries = true)
     public Exercise update(Long id, String name, String description, MuscleGroup mg) {
         Exercise e = exerciseRepository.findById(id)
