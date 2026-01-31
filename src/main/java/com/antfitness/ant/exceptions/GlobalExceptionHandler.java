@@ -13,7 +13,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
-        // npr. "Username already exists", "Email already exists"
+
         return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
     }
 

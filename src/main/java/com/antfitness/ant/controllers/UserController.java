@@ -17,7 +17,7 @@ public class UserController {
 
     @GetMapping("/me")
     public MeResponse me(Authentication auth) {
-        // auth.getName() je username (subject iz tokena)
+
         User u = userService.getByUsernameOrThrow(auth.getName());
         return new MeResponse(
                 u.getId(),

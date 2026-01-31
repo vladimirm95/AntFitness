@@ -1,7 +1,13 @@
 package com.antfitness.ant.services;
 
-import com.antfitness.ant.model.*;
-import com.antfitness.ant.repositories.*;
+import com.antfitness.ant.exceptions.ForbiddenException;
+import com.antfitness.ant.model.Exercise;
+import com.antfitness.ant.model.User;
+import com.antfitness.ant.model.WorkoutDayPlan;
+import com.antfitness.ant.model.WorkoutExercise;
+import com.antfitness.ant.repositories.ExerciseRepository;
+import com.antfitness.ant.repositories.WorkoutDayPlanRepository;
+import com.antfitness.ant.repositories.WorkoutExerciseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -41,8 +47,8 @@ public class WorkoutService {
     @Transactional
     public WorkoutDayPlan addExercise(Long planId, Long exerciseId, int sets, int reps) {
 
-        WorkoutDayPlan plan = planRepository.findById(planId)
-                .orElseThrow(() -> new IllegalArgumentException("Workout plan not found"));
+        // ✅ ownership check
+        WorkoutDayPlan plan = getPlanOwnedByCurrentUserOrThrow(planId);
 
         Exercise exercise = exerciseRepository.findById(exerciseId)
                 .orElseThrow(() -> new IllegalArgumentException("Exercise not found"));
@@ -60,18 +66,18 @@ public class WorkoutService {
         plan.getExercises().add(we);
         return planRepository.save(plan);
     }
+
     @Transactional
     public void deleteWorkoutExercise(Long workoutExerciseId) {
 
         WorkoutExercise we = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElseThrow(() -> new IllegalArgumentException("Workout exercise not found"));
 
-        String currentUsername =
-                SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentUsername = currentUsername();
 
-        //!
+        // ✅ 403 umesto 400 + ownership
         if (!we.getWorkoutDayPlan().getUser().getUsername().equals(currentUsername)) {
-            throw new IllegalArgumentException("You cannot delete exercises from another user's workout");
+            throw new ForbiddenException("You cannot delete exercises from another user's workout");
         }
 
         workoutExerciseRepository.delete(we);
@@ -79,8 +85,9 @@ public class WorkoutService {
 
     @Transactional
     public WorkoutDayPlan markCompleted(Long id) {
-        WorkoutDayPlan plan = planRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workout plan not found"));
+
+        // ownership check
+        WorkoutDayPlan plan = getPlanOwnedByCurrentUserOrThrow(id);
 
         plan.setCompleted(true);
         return planRepository.save(plan);
@@ -90,6 +97,7 @@ public class WorkoutService {
         return planRepository.findByUserAndDate(user, date)
                 .orElseThrow(() -> new IllegalArgumentException("Workout plan not found for this date"));
     }
+
     @Cacheable(value = "workout_calendar", key = "#user.id + ':' + #year + ':' + #month")
     public List<WorkoutDayPlan> getForMonth(User user, int year, int month) {
 
@@ -99,10 +107,33 @@ public class WorkoutService {
 
         return planRepository.findAllByUserAndDateBetween(user, start, end);
     }
+
     public WorkoutDayPlan getById(Long id) {
-        return planRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Workout plan not found"));
+        return getPlanOwnedByCurrentUserOrThrow(id);
     }
 
+    private WorkoutDayPlan getPlanOwnedByCurrentUserOrThrow(Long planId) {
+        WorkoutDayPlan plan = planRepository.findById(planId)
+                .orElseThrow(() -> new IllegalArgumentException("Workout plan not found"));
 
+        String currentUsername = currentUsername();
+
+        if (plan.getUser() == null || plan.getUser().getUsername() == null) {
+            throw new IllegalStateException("Workout plan owner is missing");
+        }
+
+        if (!plan.getUser().getUsername().equals(currentUsername)) {
+            throw new ForbiddenException("You cannot access another user's workout plan");
+        }
+
+        return plan;
+    }
+
+    private String currentUsername() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new ForbiddenException("Not authenticated");
+        }
+        return auth.getName();
+    }
 }

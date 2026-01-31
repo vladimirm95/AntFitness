@@ -1,5 +1,6 @@
 package com.antfitness.ant.services;
 
+import com.antfitness.ant.exceptions.ForbiddenException;
 import com.antfitness.ant.model.Role;
 import com.antfitness.ant.model.User;
 import com.antfitness.ant.repositories.UserRepository;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -38,6 +40,7 @@ public class UserService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
+
     public List<User> findAllUsers() {
         return userRepository.findAll();
     }
@@ -52,6 +55,7 @@ public class UserService {
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .role(role)
                 .build();
+
         return userRepository.save(u);
     }
 
@@ -60,16 +64,15 @@ public class UserService {
         User userToUpdate = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String currentUsername =
-                SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentUsername = currentUsername();
 
-        //  Admin ne moze menjati samog sebe
+
         if (userToUpdate.getUsername().equals(currentUsername)) {
-            throw new IllegalArgumentException("Admin cannot update his own role");
+            throw new ForbiddenException("Admin cannot update his own role");
         }
 
-        if (userToUpdate.getRole() == Role.ADMIN && newRole == Role.USER) {
 
+        if (userToUpdate.getRole() == Role.ADMIN && newRole == Role.USER) {
             long adminCount = userRepository.findAll().stream()
                     .filter(u -> u.getRole() == Role.ADMIN)
                     .count();
@@ -96,22 +99,19 @@ public class UserService {
         return userRepository.save(userToUpdate);
     }
 
-
-
+    @Transactional
     public void deleteUser(Long id) {
 
         User userToDelete = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // username trenutno ulogovanog korisnika
-        String currentUsername =
-                SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentUsername = currentUsername();
+
 
         if (userToDelete.getUsername().equals(currentUsername)) {
-            throw new IllegalArgumentException("Admin cannot delete himself");
+            throw new ForbiddenException("Admin cannot delete himself");
         }
 
-        // ne moze se obrisati poslednji admin
         if (userToDelete.getRole() == Role.ADMIN) {
             long adminCount = userRepository.findAll().stream()
                     .filter(u -> u.getRole() == Role.ADMIN)
@@ -121,5 +121,15 @@ public class UserService {
                 throw new IllegalArgumentException("Cannot delete the last admin");
             }
         }
+
+        userRepository.delete(userToDelete);
+    }
+
+    private String currentUsername() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new ForbiddenException("Not authenticated");
+        }
+        return auth.getName();
     }
 }
