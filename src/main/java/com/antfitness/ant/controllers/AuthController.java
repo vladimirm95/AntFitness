@@ -1,6 +1,7 @@
 package com.antfitness.ant.controllers;
 
 
+import com.antfitness.ant.repositories.UserRepository;
 import com.antfitness.ant.requests.LoginRequest;
 import com.antfitness.ant.requests.RegisterRequest;
 import com.antfitness.ant.responses.AuthResponse;
@@ -14,6 +15,8 @@ import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+
 @RestController
 @RequestMapping("/auth")
 @CrossOrigin
@@ -23,6 +26,7 @@ public class AuthController {
     private final UserService userService;
     private final AuthenticationManager authManager;
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody RegisterRequest req) {
@@ -38,8 +42,20 @@ public class AuthController {
         );
 
         String username = auth.getName();
+
+        String loginId = req.getUsernameOrEmail();
+
+        userRepository.findByUsername(loginId)
+                .or(() -> userRepository.findByEmail(loginId))
+                .ifPresent(u -> {
+                    u.setLastLogin(Instant.now());
+                    userRepository.save(u);
+                });
+
+
         String token = jwtUtil.generateToken(username);
         return ResponseEntity.ok(new AuthResponse(token));
     }
+
 
 }

@@ -3,6 +3,8 @@ package com.antfitness.ant.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "users")
 @Getter @Setter
@@ -24,4 +26,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
+
+
+    @Column(name = "last_login")
+    private Instant lastLogin;
+
 }
