@@ -50,7 +50,7 @@ The project is designed as a backend for Android/Web applications.
 - Clear separation of authentication, authorization and business logic
 
 ---
-## Security & Rate Limiting
+## Security and Rate Limiting
 - Login rate limiting using **Redis**
 - Rate limiting based on **user + IP**
 - Atomic counters with TTL to prevent brute-force attacks
