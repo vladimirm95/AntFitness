@@ -1,170 +1,155 @@
-AntFitness API
+# AntFitness API
 
-AntFitness is a production-style Spring Boot REST API for workout planning and user management.
-The project is designed as a secure backend system for Android/Web applications, with a strong focus on architecture, security, and clean separation of concerns.
+AntFitness is a production-style Spring Boot REST API for workout planning and user management.  
+The project is designed as a secure backend system for Android/Web applications, with a strong focus on clean architecture, security, and domain-driven design principles.
 
- Features
- Authentication & Authorization
+---
 
-Stateless JWT-based authentication (signup / login)
+##  Overview
 
-Role-based authorization (USER, ADMIN)
+AntFitness provides:
 
-Custom @AdminOnly annotation implemented via AOP
+- Secure user authentication and authorization
+- Role-based access control (`USER`, `ADMIN`)
+- Workout planning per calendar day
+- Exercise management
+- Protection against brute-force login attacks
+- Clear separation between authentication, authorization, and business logic
 
-Admin protection (cannot delete or downgrade the last admin)
 
-Login rate limiting using Redis (brute-force protection)
+---
 
- User Management
+##  Architecture
 
-View own profile (/users/me)
 
-Admin CRUD operations on users
+### Architectural Principles
 
-Role assignment during user creation
+- Controllers handle only HTTP-related concerns
+- Services contain business logic and domain rules
+- Repositories interact with the database via Spring Data JPA
+- DTOs are used for request/response mapping (entities are never exposed)
+- Global exception handling centralizes error responses
+- Authentication and authorization are separated from business logic
 
-last_login tracking on successful authentication
+This structure improves:
 
- Workout Planning
+- Maintainability
+- Scalability
+- Testability
+- Separation of concerns
 
-Create workout plan for a specific date (calendar-based)
+---
 
-One workout plan per user per date (domain constraint)
+## 🔐 Security Design
 
-Add exercises to a workout day
+### Stateless JWT Authentication
 
-Mark workout day as completed
+- Users authenticate via `/auth/login`
+- A signed JWT token is returned on successful authentication
+- JWT is validated in a custom `JwtAuthenticationFilter`
+- SecurityContext is populated for each request
+- No server-side sessions are used
 
-Filter exercises by muscle group
+---
 
- Architecture
+### Role-Based Authorization
 
-Key architectural decisions:
+- Roles: `USER`, `ADMIN`
+- Access to protected endpoints is restricted based on roles
+- Business rules are enforced at the service layer
 
-Controllers handle HTTP concerns only
+---
 
-Services contain business logic and domain rules
+### AOP-Based Admin Protection
 
-Repositories interact with the database via Spring Data JPA
+A custom annotation `@AdminOnly` is implemented using Spring AOP.
 
-DTOs are used for request/response mapping (entities are not exposed)
+#### Why AOP?
 
-Global exception handling centralizes error responses
+Instead of relying only on `@PreAuthorize`, a custom AOP approach was used to:
 
-This ensures:
+- Encapsulate admin validation logic in one place
+- Avoid repeating security checks across controllers
+- Keep controllers focused on HTTP concerns
+- Demonstrate handling of cross-cutting concerns
 
-Clear separation of concerns
+---
 
-Maintainability
+### Redis-Based Login Rate Limiting
 
-Testability
+To protect the authentication endpoint from brute-force attacks, a Redis-based rate limiting mechanism was implemented.
 
-Scalability
+#### How it works
 
- Security Design
-1. Stateless JWT Authentication
+- Each login attempt increments a Redis counter.
+- Key format: `login:attempts:{username}:{ip}`
+- An atomic `INCR` operation is used.
+- A TTL defines the rate-limiting window (e.g. 60 seconds).
+- If the threshold is exceeded → HTTP 429 (Too Many Requests) is returned.
 
-Users authenticate via /auth/login
+#### Why Redis?
 
-On success, a JWT is issued
+- In-memory performance
+- Atomic counter operations
+- Built-in TTL support
+- Production-ready distributed rate limiting capability
 
-JWT is validated in a custom JwtAuthenticationFilter
+---
 
-Security context is populated per request
+## 🏋️ Workout Planning Domain
 
-No server-side session storage
+The application enforces domain rules at the service layer:
 
-This approach ensures scalability and horizontal compatibility.
+- One workout plan per user per date
+- Users can access only their own workout plans
+- Only admins can manage other users
+- The last admin cannot be deleted or downgraded
 
-2. Redis-Based Login Rate Limiting
+### Workout Features
 
-To prevent brute-force login attacks:
+- Create workout plan for a specific date
+- Add exercises to a workout day
+- Mark workout day as completed
+- Filter exercises by muscle group
 
-Each login attempt increments a Redis counter
+---
 
-Key format: login:attempts:{username}:{ip}
+##  Database
 
-Atomic increment (INCR)
-
-TTL-based sliding window (e.g. 60 seconds)
-
-If threshold is exceeded → HTTP 429 (Too Many Requests)
-
-Why Redis?
-
-Fast in-memory store
-
-Atomic operations
-
-Built-in TTL support
-
-Production-ready rate limiting mechanism
-
-3. AOP-Based Admin Protection
-
-Instead of relying solely on @PreAuthorize, a custom annotation:
-
-@AdminOnly
-
-is implemented using Spring AOP.
-
-Why?
-
-Keeps security logic separate from controllers
-
-Encapsulates admin validation rules
-
-Prevents accidental misuse of privileged endpoints
-
-Demonstrates cross-cutting concern handling
-
- Database
-
-PostgreSQL
-
-Spring Data JPA
-
-Flyway for versioned migrations
+- PostgreSQL
+- Spring Data JPA
+- Flyway for versioned migrations
 
 Flyway ensures:
 
-Reproducible schema evolution
+- Version-controlled schema evolution
+- Reproducible database state
+- Production-style migration workflow
 
-Version control for database changes
+---
 
-Production-style migration flow
+##  Tech Stack
 
- Tech Stack
+- Java 17
+- Spring Boot
+- Spring Security
+- Spring Data JPA
+- PostgreSQL
+- Redis
+- Flyway
+- Lombok
+- Aspect-Oriented Programming (AOP)
 
-Java 17
+---
 
-Spring Boot
+##  Engineering Focus
 
-Spring Security
+AntFitness was built to demonstrate:
 
-Spring Data JPA
+- Security-focused backend development
+- Clean separation of concerns
+- Domain rule enforcement
+- Production-oriented architectural patterns
+- System-level thinking beyond simple CRUD applications
 
-PostgreSQL
 
-Redis
-
-Flyway
-
-Lombok
-
-Aspect-Oriented Programming (AOP)
-
- Domain Constraints
-
-The project enforces business rules at the service layer:
-
-A user can have only one workout plan per date
-
-Only admins can modify other users
-
-The last admin cannot be removed
-
-Users can only access their own workout plans
-
-This prevents logic leakage into controllers and ensures consistency.
