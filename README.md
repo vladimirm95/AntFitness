@@ -127,6 +127,12 @@ Flyway ensures:
 - Production-style migration workflow
 
 ---
+## Testing
+
+The project includes focused tests for security-critical components:
+
+- **Login rate limiting**: verifies Redis-backed attempt counter + TTL window and blocking behavior (HTTP 429)
+- **Admin-only AOP guard**: verifies `@AdminOnly` aspect enforcement for `ROLE_ADMIN` and denial for non-admin users
 
 ##  Tech Stack
 
