@@ -40,7 +40,7 @@ This structure improves:
 
 ---
 
-## 🔐 Security Design
+##  Security Design
 
 ### Stateless JWT Authentication
 
@@ -96,7 +96,7 @@ To protect the authentication endpoint from brute-force attacks, a Redis-based r
 
 ---
 
-## 🏋️ Workout Planning Domain
+##  Workout Planning Domain
 
 The application enforces domain rules at the service layer:
 
