@@ -147,6 +147,22 @@ The project includes focused tests for security-critical components:
 - Aspect-Oriented Programming (AOP)
 
 ---
+## Running the Application
+
+### Prerequisites
+- Docker Desktop
+
+### Steps
+
+1. Open Docker Desktop.
+2. Start the required containers:
+   - PostgreSQL
+   - Redis
+3. Run the Spring Boot application container.
+
+Once all containers are running, the API will be available at:
+
+http://localhost:8080
 
 ##  Engineering Focus
 
