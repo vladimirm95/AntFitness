@@ -127,6 +127,12 @@ Flyway ensures:
 - Production-style migration workflow
 
 ---
+## Testing
+
+The project includes focused tests for security-critical components:
+
+- **Login rate limiting**: verifies Redis-backed attempt counter + TTL window and blocking behavior (HTTP 429)
+- **Admin-only AOP guard**: verifies `@AdminOnly` aspect enforcement for `ROLE_ADMIN` and denial for non-admin users
 
 ##  Tech Stack
 
@@ -141,6 +147,22 @@ Flyway ensures:
 - Aspect-Oriented Programming (AOP)
 
 ---
+## Running the Application
+
+### Prerequisites
+- Docker Desktop
+
+### Steps
+
+1. Open Docker Desktop.
+2. Start the required containers:
+   - PostgreSQL
+   - Redis
+3. Run the Spring Boot application container.
+
+Once all containers are running, the API will be available at:
+
+http://localhost:8080
 
 ##  Engineering Focus
 
