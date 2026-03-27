@@ -1,11 +1,17 @@
 package com.antfitness.ant.controllers;
 
 import com.antfitness.ant.model.User;
-import com.antfitness.ant.responses.*;
-import com.antfitness.ant.requests.*;
-import com.antfitness.ant.services.*;
+import com.antfitness.ant.model.WorkoutDayPlan;
+import com.antfitness.ant.requests.AddExerciseToWorkoutRequest;
+import com.antfitness.ant.requests.CreateWorkoutPlanRequest;
+import com.antfitness.ant.responses.WorkoutCalendarDayResponse;
+import com.antfitness.ant.responses.WorkoutExerciseResponse;
+import com.antfitness.ant.responses.WorkoutPlanResponse;
+import com.antfitness.ant.services.UserService;
+import com.antfitness.ant.services.WorkoutService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,81 +27,77 @@ public class WorkoutController {
     private final WorkoutService workoutService;
     private final UserService userService;
 
-    @GetMapping("/{id}")
-    public WorkoutPlanResponse getById(@PathVariable Long id) {
-        return map(workoutService.getById(id));
-    }
-
     @PostMapping
     public WorkoutPlanResponse create(
-            @Valid @RequestBody CreateWorkoutPlanRequest req,
+            @Valid @RequestBody CreateWorkoutPlanRequest request,
             Authentication auth
     ) {
         User user = userService.getByUsernameOrThrow(auth.getName());
-        var plan = workoutService.createPlan(user, req.getDate());
-        return map(plan);
+        WorkoutDayPlan plan = workoutService.createPlan(user, request.getDate());
+        return toPlanResponse(plan);
     }
 
-    @DeleteMapping("/exercises/{id}")
-    public void deleteWorkoutExercise(@PathVariable Long id) {
-        workoutService.deleteWorkoutExercise(id);
+    @GetMapping
+    public WorkoutPlanResponse getByDate(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Authentication auth
+    ) {
+        User user = userService.getByUsernameOrThrow(auth.getName());
+        WorkoutDayPlan plan = workoutService.getByDate(user, date);
+        return toPlanResponse(plan);
     }
 
     @PostMapping("/{id}/exercises")
     public WorkoutPlanResponse addExercise(
             @PathVariable Long id,
-            @Valid @RequestBody AddExerciseToWorkoutRequest req
+            @Valid @RequestBody AddExerciseToWorkoutRequest request
     ) {
-        var plan = workoutService.addExercise(id, req.getExerciseId(), req.getSets(), req.getReps());
-        return map(plan);
+        WorkoutDayPlan plan = workoutService.addExercise(
+                id,
+                request.getExerciseId(),
+                request.getSets(),
+                request.getReps()
+        );
+        return toPlanResponse(plan);
+    }
+
+    @DeleteMapping("/exercises/{workoutExerciseId}")
+    public void deleteExercise(@PathVariable Long workoutExerciseId) {
+        workoutService.deleteWorkoutExercise(workoutExerciseId);
     }
 
     @PutMapping("/{id}/complete")
-    public WorkoutPlanResponse complete(@PathVariable Long id) {
-        return map(workoutService.markCompleted(id));
-    }
-
-    private WorkoutPlanResponse map(com.antfitness.ant.model.WorkoutDayPlan plan) {
-        return new WorkoutPlanResponse(
-                plan.getId(),
-                plan.getDate(),
-                plan.isCompleted(),
-                plan.getExercises().stream()
-                        .map(e -> new WorkoutExerciseResponse(
-                                e.getId(),
-                                e.getExercise().getName(),
-                                e.getSets(),
-                                e.getReps(),
-                                e.getOrderIndex()
-                        ))
-                        .toList()
-        );
-    }
-    @GetMapping
-    public WorkoutPlanResponse getByDate(
-            @RequestParam String date,
-            Authentication auth
-    ) {
-        User user = userService.getByUsernameOrThrow(auth.getName());
-        var plan = workoutService.getByDate(user, LocalDate.parse(date));
-        return map(plan);
+    public WorkoutPlanResponse markCompleted(@PathVariable Long id) {
+        WorkoutDayPlan plan = workoutService.markCompleted(id);
+        return toPlanResponse(plan);
     }
 
     @GetMapping("/calendar")
-    public List<WorkoutCalendarDayResponse> calendar(
+    public List<WorkoutCalendarDayResponse> getCalendar(
             @RequestParam int year,
             @RequestParam int month,
             Authentication auth
     ) {
         User user = userService.getByUsernameOrThrow(auth.getName());
-
-        return workoutService.getForMonth(user, year, month).stream()
-                .map(p -> new WorkoutCalendarDayResponse(
-                        p.getDate(),
-                        p.isCompleted()
-                ))
-                .toList();
+        return workoutService.getForMonth(user, year, month);
     }
 
+    private WorkoutPlanResponse toPlanResponse(WorkoutDayPlan plan) {
+        List<WorkoutExerciseResponse> exercises = plan.getExercises().stream()
+                .map(we -> new WorkoutExerciseResponse(
+                        we.getId(),
+                        we.getExercise().getName(),
+                        we.getSets(),
+                        we.getReps(),
+                        we.getOrderIndex()
+                ))
+                .toList();
 
+        return new WorkoutPlanResponse(
+                plan.getId(),
+                plan.getDate(),
+                plan.isCompleted(),
+                exercises
+        );
+    }
 }

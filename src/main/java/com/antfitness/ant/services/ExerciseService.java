@@ -16,7 +16,7 @@ public class ExerciseService {
 
     private final ExerciseRepository exerciseRepository;
 
-    @Cacheable("exercises_all")
+
     public List<Exercise> findAll() {
         return exerciseRepository.findAll();
     }

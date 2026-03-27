@@ -3,11 +3,13 @@ package com.antfitness.ant.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
+
 @Entity
 @Table(name = "exercises")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor @Builder
-public class Exercise {
+public class Exercise implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

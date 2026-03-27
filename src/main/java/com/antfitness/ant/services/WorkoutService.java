@@ -8,6 +8,7 @@ import com.antfitness.ant.model.WorkoutExercise;
 import com.antfitness.ant.repositories.ExerciseRepository;
 import com.antfitness.ant.repositories.WorkoutDayPlanRepository;
 import com.antfitness.ant.repositories.WorkoutExerciseRepository;
+import com.antfitness.ant.responses.WorkoutCalendarDayResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -27,7 +28,7 @@ public class WorkoutService {
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final ExerciseRepository exerciseRepository;
 
-    @CacheEvict(value = "workout_calendar", allEntries = true)
+    @CacheEvict(value = "workout_calendar_v2", allEntries = true)
     @Transactional
     public WorkoutDayPlan createPlan(User user, LocalDate date) {
         planRepository.findByUserAndDate(user, date)
@@ -44,10 +45,9 @@ public class WorkoutService {
         return planRepository.save(plan);
     }
 
+    @CacheEvict(value = "workout_calendar_v2", allEntries = true)
     @Transactional
     public WorkoutDayPlan addExercise(Long planId, Long exerciseId, int sets, int reps) {
-
-        // ✅ ownership check
         WorkoutDayPlan plan = getPlanOwnedByCurrentUserOrThrow(planId);
 
         Exercise exercise = exerciseRepository.findById(exerciseId)
@@ -67,15 +67,14 @@ public class WorkoutService {
         return planRepository.save(plan);
     }
 
+    @CacheEvict(value = "workout_calendar_v2", allEntries = true)
     @Transactional
     public void deleteWorkoutExercise(Long workoutExerciseId) {
-
         WorkoutExercise we = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElseThrow(() -> new IllegalArgumentException("Workout exercise not found"));
 
         String currentUsername = currentUsername();
 
-        // ✅ 403 umesto 400 + ownership
         if (!we.getWorkoutDayPlan().getUser().getUsername().equals(currentUsername)) {
             throw new ForbiddenException("You cannot delete exercises from another user's workout");
         }
@@ -83,12 +82,10 @@ public class WorkoutService {
         workoutExerciseRepository.delete(we);
     }
 
+    @CacheEvict(value = "workout_calendar_v2", allEntries = true)
     @Transactional
     public WorkoutDayPlan markCompleted(Long id) {
-
-        // ownership check
         WorkoutDayPlan plan = getPlanOwnedByCurrentUserOrThrow(id);
-
         plan.setCompleted(true);
         return planRepository.save(plan);
     }
@@ -98,14 +95,19 @@ public class WorkoutService {
                 .orElseThrow(() -> new IllegalArgumentException("Workout plan not found for this date"));
     }
 
-    @Cacheable(value = "workout_calendar", key = "#user.id + ':' + #year + ':' + #month")
-    public List<WorkoutDayPlan> getForMonth(User user, int year, int month) {
-
+    @Cacheable(value = "workout_calendar_v2", key = "#user.id + ':' + #year + ':' + #month")
+    public List<WorkoutCalendarDayResponse> getForMonth(User user, int year, int month) {
         YearMonth ym = YearMonth.of(year, month);
         LocalDate start = ym.atDay(1);
         LocalDate end = ym.atEndOfMonth();
 
-        return planRepository.findAllByUserAndDateBetween(user, start, end);
+        return planRepository.findAllByUserAndDateBetween(user, start, end)
+                .stream()
+                .map(plan -> new WorkoutCalendarDayResponse(
+                        plan.getDate(),
+                        plan.isCompleted()
+                ))
+                .toList();
     }
 
     public WorkoutDayPlan getById(Long id) {
