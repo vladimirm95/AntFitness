@@ -50,6 +50,10 @@ public class WorkoutService {
     public WorkoutDayPlan addExercise(Long planId, Long exerciseId, int sets, int reps) {
         WorkoutDayPlan plan = getPlanOwnedByCurrentUserOrThrow(planId);
 
+        if (plan.isCompleted()) {
+            throw new IllegalArgumentException("Completed workout cannot be modified");
+        }
+
         Exercise exercise = exerciseRepository.findById(exerciseId)
                 .orElseThrow(() -> new IllegalArgumentException("Exercise not found"));
 
@@ -77,6 +81,10 @@ public class WorkoutService {
 
         if (!we.getWorkoutDayPlan().getUser().getUsername().equals(currentUsername)) {
             throw new ForbiddenException("You cannot delete exercises from another user's workout");
+        }
+
+        if (we.getWorkoutDayPlan().isCompleted()) {
+            throw new IllegalArgumentException("Completed workout cannot be modified");
         }
 
         workoutExerciseRepository.delete(we);

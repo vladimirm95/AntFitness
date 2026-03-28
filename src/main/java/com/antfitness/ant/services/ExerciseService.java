@@ -1,11 +1,8 @@
 package com.antfitness.ant.services;
 
-import com.antfitness.ant.model.Exercise;
-import com.antfitness.ant.model.MuscleGroup;
+import com.antfitness.ant.model.*;
 import com.antfitness.ant.repositories.ExerciseRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,48 +13,100 @@ public class ExerciseService {
 
     private final ExerciseRepository exerciseRepository;
 
-
     public List<Exercise> findAll() {
         return exerciseRepository.findAll();
     }
 
-    @Cacheable(value = "exercises_by_group", key = "#muscleGroup")
     public List<Exercise> findByMuscleGroup(MuscleGroup muscleGroup) {
-        return exerciseRepository.findAllByMuscleGroup(muscleGroup);
+        return exerciseRepository.findByMuscleGroup(muscleGroup);
     }
 
-    @CacheEvict(value = {"exercises_all", "exercises_by_group"}, allEntries = true)
-    public Exercise create(String name, String description, MuscleGroup mg) {
-        if (exerciseRepository.existsByName(name)) {
+    public List<Exercise> findByCategory(ExerciseCategory category) {
+        return exerciseRepository.findByCategory(category);
+    }
+
+    public List<Exercise> findByEquipment(Equipment equipment) {
+        return exerciseRepository.findByEquipment(equipment);
+    }
+
+    public List<Exercise> findByDifficulty(Difficulty difficulty) {
+        return exerciseRepository.findByDifficulty(difficulty);
+    }
+
+    public List<Exercise> findByExerciseType(ExerciseType exerciseType) {
+        return exerciseRepository.findByExerciseType(exerciseType);
+    }
+
+    public Exercise getByIdOrThrow(Long id) {
+        return exerciseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Exercise not found"));
+    }
+
+    public Exercise create(
+            String name,
+            String description,
+            MuscleGroup muscleGroup,
+            ExerciseCategory category,
+            ExerciseType exerciseType,
+            Equipment equipment,
+            Difficulty difficulty,
+            MovementPattern movementPattern
+    ) {
+        if (exerciseRepository.existsByNameIgnoreCase(name.trim())) {
             throw new IllegalArgumentException("Exercise with this name already exists");
         }
-        Exercise e = Exercise.builder()
-                .name(name)
-                .description(description)
-                .muscleGroup(mg)
+
+        Exercise exercise = Exercise.builder()
+                .name(name.trim())
+                .description(description != null ? description.trim() : null)
+                .muscleGroup(muscleGroup)
+                .category(category)
+                .exerciseType(exerciseType)
+                .equipment(equipment)
+                .difficulty(difficulty)
+                .movementPattern(movementPattern)
                 .build();
-        return exerciseRepository.save(e);
+
+        return exerciseRepository.save(exercise);
     }
 
-    @CacheEvict(value = {"exercises_all", "exercises_by_group"}, allEntries = true)
-    public Exercise update(Long id, String name, String description, MuscleGroup mg) {
-        Exercise e = exerciseRepository.findById(id)
+    public Exercise update(
+            Long id,
+            String name,
+            String description,
+            MuscleGroup muscleGroup,
+            ExerciseCategory category,
+            ExerciseType exerciseType,
+            Equipment equipment,
+            Difficulty difficulty,
+            MovementPattern movementPattern
+    ) {
+        Exercise exercise = exerciseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Exercise not found"));
 
-        if (!e.getName().equalsIgnoreCase(name) && exerciseRepository.existsByName(name)) {
+        String trimmedName = name.trim();
+
+        if (!exercise.getName().equalsIgnoreCase(trimmedName)
+                && exerciseRepository.existsByNameIgnoreCase(trimmedName)) {
             throw new IllegalArgumentException("Exercise with this name already exists");
         }
 
-        e.setName(name);
-        e.setDescription(description);
-        e.setMuscleGroup(mg);
-        return exerciseRepository.save(e);
+        exercise.setName(trimmedName);
+        exercise.setDescription(description != null ? description.trim() : null);
+        exercise.setMuscleGroup(muscleGroup);
+        exercise.setCategory(category);
+        exercise.setExerciseType(exerciseType);
+        exercise.setEquipment(equipment);
+        exercise.setDifficulty(difficulty);
+        exercise.setMovementPattern(movementPattern);
+
+        return exerciseRepository.save(exercise);
     }
-    @CacheEvict(value = {"exercises_all", "exercises_by_group"}, allEntries = true)
+
     public void delete(Long id) {
-        if (!exerciseRepository.existsById(id)) {
-            throw new IllegalArgumentException("Exercise not found");
-        }
-        exerciseRepository.deleteById(id);
+        Exercise exercise = exerciseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Exercise not found"));
+
+        exerciseRepository.delete(exercise);
     }
 }

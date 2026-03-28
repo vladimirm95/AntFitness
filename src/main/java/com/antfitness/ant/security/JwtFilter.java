@@ -1,6 +1,7 @@
 package com.antfitness.ant.security;
 
 import jakarta.servlet.*;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,23 +25,38 @@ public class JwtFilter extends GenericFilter {
 
         HttpServletRequest req = (HttpServletRequest) request;
 
-        String auth = req.getHeader("Authorization");
-        if (auth != null && auth.startsWith("Bearer ")) {
-            String token = auth.substring(7);
+        String token = extractJwtFromCookies(req);
 
-            if (jwtUtil.isValid(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
-                String username = jwtUtil.extractUsername(token);
+        if (token != null && jwtUtil.isValid(token)
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                UserDetails ud = userDetailsService.loadUserByUsername(username);
+            String username = jwtUtil.extractUsername(token);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+            UserDetails ud = userDetailsService.loadUserByUsername(username);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         chain.doFilter(request, response);
+    }
+
+    private String extractJwtFromCookies(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+
+        if (cookies == null) {
+            return null;
+        }
+
+        for (Cookie cookie : cookies) {
+            if ("jwt".equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+
+        return null;
     }
 }

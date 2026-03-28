@@ -16,4 +16,19 @@ public class UpsertExerciseRequest {
 
     @NotNull
     private String muscleGroup;
+
+    @NotNull
+    private String category;
+
+    @NotNull
+    private String exerciseType;
+
+    @NotNull
+    private String equipment;
+
+    @NotNull
+    private String difficulty;
+
+    @NotNull
+    private String movementPattern;
 }

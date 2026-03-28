@@ -3,13 +3,14 @@ package com.antfitness.ant.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.io.Serializable;
-
 @Entity
 @Table(name = "exercises")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
-public class Exercise implements Serializable {
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Exercise {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,4 +25,24 @@ public class Exercise implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private MuscleGroup muscleGroup;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private ExerciseCategory category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private ExerciseType exerciseType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private Equipment equipment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private Difficulty difficulty;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private MovementPattern movementPattern;
 }
